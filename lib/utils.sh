@@ -90,6 +90,24 @@ fetch_to_stdout() {
   fi
 }
 
+# extract_archive <archive> <dest-dir>: handles .tar.gz and .zip.
+# The zip fallback to `tar -xf` matters because recent ghoten releases ship
+# Windows only as .zip; bsdtar (macOS, GitHub runners) reads zip archives.
+extract_archive() {
+  [ $# -eq 2 ] || fail "extract_archive expects <archive> <dest-dir>"
+  local archive="$1" dest="$2"
+  case "$archive" in
+    *.zip)
+      if command -v unzip >/dev/null 2>&1; then
+        unzip -o -q "$archive" -d "$dest"
+      else
+        tar -xf "$archive" -C "$dest"
+      fi
+      ;;
+    *) tar -xzf "$archive" -C "$dest" ;;
+  esac
+}
+
 # trim: strip surrounding whitespace (including CR) and surrounding quotes.
 trim() {
   local var="$1"

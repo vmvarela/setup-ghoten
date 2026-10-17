@@ -100,7 +100,7 @@ With the wrapper disabled, the binary is left untouched and no `stdout`/`stderr`
 
 ## Supported platforms
 
-Linux, macOS and Windows runners (`ubuntu-latest`, `macos-latest`, `windows-latest`) in the architectures published by ghoten release archives. On Windows, `shell: bash` is required for this action and for any step that runs the installed binary.
+Linux, macOS and Windows runners (`ubuntu-latest`, `macos-latest`, `windows-latest`). Archives are `.tar.gz` on every platform and `.zip` on Windows, chosen automatically with a fallback to the other extension. Recent ghoten releases publish a reduced platform matrix (darwin/linux `amd64`+`arm64`, windows `amd64`); unsupported combinations fail fast with a clear message naming the attempted download URLs instead of a raw 404. On Windows, `shell: bash` is required for this action and for any step that runs the installed binary.
 
 ## Checksum verification
 

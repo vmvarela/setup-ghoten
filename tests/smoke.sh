@@ -149,4 +149,14 @@ pass "credentials file written with mode 600"
 assert_contains "$GITHUB_ENV" "TF_ACC=1" "GITHUB_ENV contains TF_ACC=1"
 assert_contains "$GITHUB_ENV" "TF_ACC_TERRAFORM_PATH=${INSTALL_DIR}/ghoten-bin" "GITHUB_ENV points TF_ACC_TERRAFORM_PATH at the real binary"
 
+# --- version with no published assets fails fast ------------------------------
+if INPUT_GHOTEN_VERSION="0.0.0" \
+   RUNNER_TOOL_CACHE="${WORK_DIR}/noplatform" \
+   bash lib/setup.sh >"${WORK_DIR}/noop.log" 2>&1; then
+  abort "setup for a version without assets should fail"
+fi
+grep -q "Ghoten 0.0.0 is not available for ${OS}/${ARCH}" "${WORK_DIR}/noop.log" ||
+  { cat "${WORK_DIR}/noop.log" >&2; abort "failure was not the 'is not available for' message"; }
+pass "version without published assets fails with 'is not available for' message"
+
 echo "smoke: all assertions passed"

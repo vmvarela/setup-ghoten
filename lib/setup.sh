@@ -136,8 +136,13 @@ INSTALL_ROOT="${RUNNER_TOOL_CACHE:-${HOME}/.ghoten-tool-cache}"
 INSTALL_DIR="${INSTALL_ROOT}/ghoten/${VERSION}/${ARCH}"
 mkdir -p "$INSTALL_DIR"
 
-ARCHIVE_NAME="ghoten_${VERSION}_${OS}_${ARCH}.tar.gz"
-ARCHIVE_URL="https://github.com/vmvarela/ghoten/releases/download/v${VERSION}/${ARCHIVE_NAME}"
+RELEASE_BASE="https://github.com/vmvarela/ghoten/releases/download/v${VERSION}"
+# Candidate extensions: recent releases ship Windows only as .zip, older ones
+# ship both .zip and .tar.gz for everything — try both, newest convention first.
+case "$OS" in
+  windows) ARCHIVE_EXTENSIONS="zip tar.gz" ;;
+  *) ARCHIVE_EXTENSIONS="tar.gz zip" ;;
+esac
 BINARY_NAME="ghoten${EXE}"
 
 # ---------------------------------------------------------------------------
@@ -154,11 +159,29 @@ install_binary() {
   tmpdir="$(mktemp -d)"
   trap 'rm -rf "$tmpdir"' EXIT
 
-  local archive="${tmpdir}/${ARCHIVE_NAME}"
-  log "downloading ${ARCHIVE_URL}"
-  fetch_to_file "$ARCHIVE_URL" "$archive" ||
-    fail "failed to download ghoten ${VERSION} archive"
+  # Try each published extension for this OS; remember every tried URL so the
+  # failure message can list them (honest message for platforms not published).
+  local archive_path=""; ARCHIVE_NAME="";
+  local tried_urls=() url ext archive_done
+  for ext in $ARCHIVE_EXTENSIONS; do
+    archive_done="ghoten_${VERSION}_${OS}_${ARCH}.${ext}"
+    url="${RELEASE_BASE}/${archive_done}"
+    local candidate="${tmpdir}/${archive_done}"
+    log "downloading ${url}"
+    if ! fetch_to_file "$url" "$candidate" 2>"${tmpdir}/curl.err"; then
+      debug "download failed for ${url}: $(cat "${tmpdir}/curl.err")"
+      tried_urls+=("$url")
+      continue
+    fi
+    archive_path="$candidate"
+    ARCHIVE_NAME="$archive_done"
+    break
+  done
+  if [ -z "$archive_path" ]; then
+    fail "Ghoten ${VERSION} is not available for ${OS}/${ARCH}: tried ${tried_urls[*]}"
+  fi
 
+  local archive="${archive_path}"
   local checksum_file expected received
   received="$(sha256_file "$archive")"
 
@@ -201,7 +224,7 @@ EOF
   fi
   log "checksum verified: ${received}"
 
-  tar -xzf "$archive" -C "$INSTALL_DIR"
+  extract_archive "$archive" "$INSTALL_DIR"
   [ -f "${INSTALL_DIR}/${BINARY_NAME}" ] ||
     fail "archive extracted but ${BINARY_NAME} is missing from ${INSTALL_DIR}"
   chmod 755 "${INSTALL_DIR}/${BINARY_NAME}"
