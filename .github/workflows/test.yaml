@@ -1,0 +1,84 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  action:
+    name: Action (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: setup
+        uses: ./
+        with:
+          ghoten_version: 1.12.5
+          ghoten_version_file: ''
+
+      - name: Assert ghoten is on PATH and reports the version
+        run: |
+          ghoten version
+          ghoten version | grep -Eq '[0-9]+\.[0-9]+\.[0-9]+'
+          echo "GHOTEN_CLI_PATH=${GHOTEN_CLI_PATH}"
+
+      - name: Assert wrapper binary exists
+        run: |
+          test -f "${GHOTEN_CLI_PATH}/ghoten-bin"
+
+      - name: Assert setup step output
+        run: |
+          [ "${{ steps.setup.outputs.version }}" = '1.12.5' ]
+
+      - id: setup-plain
+        uses: ./
+        with:
+          ghoten_version: 1.12.5
+          ghoten_version_file: ''
+          ghoten_wrapper: 'false'
+
+      - name: Assert plain (unwrapped) invocation works
+        run: |
+          test -f "${GHOTEN_CLI_PATH}/ghoten"
+          ghoten version | grep -q '1.12.5'
+          if [ -f "${GHOTEN_CLI_PATH}/ghoten-bin" ]; then
+            echo 'wrapper unexpectedly created with ghoten_wrapper=false' >&2
+            exit 1
+          fi
+
+      - id: setup-latest
+        uses: ./
+        with:
+          ghoten_version: latest
+          ghoten_version_file: ''
+          github_token: ${{ github.token }}
+
+      - name: Assert latest resolution
+        run: |
+          echo "resolved latest: ${{ steps.setup-latest.outputs.version }}"
+          echo "${{ steps.setup-latest.outputs.version }}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: shellcheck
+        run: shellcheck -x lib/*.sh tests/*.sh
+
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:latest

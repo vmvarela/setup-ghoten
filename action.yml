@@ -1,0 +1,61 @@
+name: 'Ghoten - Setup Ghoten'
+description: 'Install the Ghoten CLI in your GitHub Actions workflow.'
+author: 'Victor M. Varela'
+branding:
+  icon: 'box'
+  color: 'purple'
+
+inputs:
+  ghoten_version:
+    description: 'The ghoten version to install: `latest` or an exact `X.Y.Z` (optional leading `v`).'
+    required: false
+    default: 'latest'
+  ghoten_version_file:
+    description: 'File containing the version to install, taking precedence over `ghoten_version` when non-empty.'
+    required: false
+    default: '.ghoten-version'
+  ghoten_wrapper:
+    description: 'Wrap the installed binary to capture stdout, stderr and exit code of any invocation into the calling step outputs.'
+    required: false
+    default: 'true'
+  checksums:
+    description: 'Multiline SHA-256 checksums to use instead of the checksum file shipped with the release.'
+    required: false
+    default: ''
+  github_token:
+    description: 'Your GitHub token, used for queries to the GitHub API when resolving the latest release.'
+    required: false
+    default: ''
+  cli_config_credentials_hostname:
+    description: 'The hostname of the credentials block written to the ghoten CLI configuration file.'
+    required: false
+    default: 'app.terraform.io'
+  cli_config_credentials_token:
+    description: 'The API token for the credentials block written to the ghoten CLI configuration file.'
+    required: false
+    default: ''
+  provider_acceptance_tests:
+    description: 'Export TF_ACC* variables pointing at the installed ghoten binary, for provider acceptance tests.'
+    required: false
+    default: 'false'
+
+outputs:
+  version:
+    description: 'The installed ghoten version.'
+    value: ${{ steps.setup.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - id: setup
+      shell: bash
+      run: bash "${GITHUB_ACTION_PATH}/lib/setup.sh"
+      env:
+        INPUT_GHOTEN_VERSION: ${{ inputs.ghoten_version }}
+        INPUT_GHOTEN_VERSION_FILE: ${{ inputs.ghoten_version_file }}
+        INPUT_GHOTEN_WRAPPER: ${{ inputs.ghoten_wrapper }}
+        INPUT_CHECKSUMS: ${{ inputs.checksums }}
+        INPUT_GHOTEN_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_CLI_CONFIG_CREDENTIALS_HOSTNAME: ${{ inputs.cli_config_credentials_hostname }}
+        INPUT_CLI_CONFIG_CREDENTIALS_TOKEN: ${{ inputs.cli_config_credentials_token }}
+        INPUT_PROVIDER_ACCEPTANCE_TESTS: ${{ inputs.provider_acceptance_tests }}
