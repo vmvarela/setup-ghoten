@@ -126,6 +126,9 @@ Releases ship a checksum file; the archive's SHA-256 is verified against it befo
 # end-to-end smoke test (downloads a real ghoten release)
 bash tests/smoke.sh
 
+# same, under the bash 3.2 that macOS runners use for `shell: bash`
+PATH="/bin:/usr/bin:$PATH" /bin/bash tests/smoke.sh
+
 # static analysis
 shellcheck -x lib/*.sh tests/*.sh
 docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:latest

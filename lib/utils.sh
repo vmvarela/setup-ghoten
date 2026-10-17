@@ -25,10 +25,12 @@ mask_secret() {
 }
 
 detect_os() {
-  local kernel
+  local kernel lower
   kernel="$(uname -s)"
-  case "${kernel,,}" in
-    linux|darwin|freebsd|netbsd|openbsd|solaris) echo "${kernel,,}" ;;
+  # tr, not ${kernel,,}: macOS runners come with bash 3.2.
+  lower="$(printf '%s' "$kernel" | tr '[:upper:]' '[:lower:]')"
+  case "$lower" in
+    linux|darwin|freebsd|netbsd|openbsd|solaris) echo "$lower" ;;
     mingw*|msys*|cygwin*) echo "windows" ;;
     *) fail "unsupported operating system: '$kernel'" ;;
   esac

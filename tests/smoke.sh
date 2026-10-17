@@ -82,6 +82,18 @@ grep -q "already installed" "${WORK_DIR}/setup2.log" || abort "second run did no
 ! grep -q "downloading" "${WORK_DIR}/setup2.log" || abort "second run downloaded again"
 pass "second run skips the download"
 
+# --- unwrapping a warm cache (ghoten_wrapper=false) ---------------------------
+: >"$GITHUB_ENV"
+if ! INPUT_GHOTEN_VERSION="$VERSION" INPUT_GHOTEN_WRAPPER="false" \
+     bash lib/setup.sh >"${WORK_DIR}/nowrapper.log" 2>&1; then
+  cat "${WORK_DIR}/nowrapper.log" >&2; abort "ghoten_wrapper=false run exited non-zero"
+fi
+[ -f "${INSTALL_DIR}/ghoten" ] || abort "binary missing at ${INSTALL_DIR}/ghoten"
+[ ! -f "${INSTALL_DIR}/ghoten-bin" ] || abort "ghoten-bin still present after ghoten_wrapper=false"
+"${INSTALL_DIR}/ghoten" version | grep -qF "$VERSION" ||
+  abort "unwrapped ghoten does not report ${VERSION}"
+pass "ghoten_wrapper=false replaces the wrapper with the plain binary"
+
 # --- wrong checksum fails ------------------------------------------------------
 if INPUT_GHOTEN_VERSION="$VERSION" \
    INPUT_CHECKSUMS="0000000000000000000000000000000000000000000000000000000000000000  ghoten_${VERSION}_${OS}_${ARCH}.tar.gz" \

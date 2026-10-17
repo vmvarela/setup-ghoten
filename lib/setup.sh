@@ -219,8 +219,10 @@ install_wrapper() {
   local real="ghoten-bin${EXE}" wrapper="${BINARY_NAME}"
 
   if [ "$INPUT_GHOTEN_WRAPPER" != "true" ]; then
-    # A warm cache may hold only the wrapped pair from an earlier run.
-    if [ ! -f "${INSTALL_DIR}/${BINARY_NAME}" ] && [ -f "${INSTALL_DIR}/${real}" ]; then
+    # A warm cache may hold the wrapped pair from an earlier run: "${BINARY_NAME}"
+    # is then the wrapper script, so drop it before restoring the real binary.
+    if [ -f "${INSTALL_DIR}/${real}" ]; then
+      rm -f "${INSTALL_DIR}/${BINARY_NAME}"
       mv "${INSTALL_DIR}/${real}" "${INSTALL_DIR}/${BINARY_NAME}"
     fi
     append_env "GHOTEN_CLI_PATH" "$INSTALL_DIR"
