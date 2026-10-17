@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Shared helpers for the setup-ghoten action. Sourced, never executed: no side effects.
 
+# Diagnostics go to stderr: functions that return values through stdout
+# (resolve_version, detect_os, ...) are captured with $(...) and must print
+# nothing but their value.
 log() {
-  echo "[setup-ghoten] $*"
+  echo "[setup-ghoten] $*" >&2
 }
 
 warn() {
-  echo "::warning::[setup-ghoten] $*"
+  echo "::warning::[setup-ghoten] $*" >&2
 }
 
 fail() {

@@ -39,6 +39,10 @@ assert_contains() { # assert_contains <file> <needle> <label>
   grep -qF -- "$2" "$1" || abort "$3"
   pass "$3"
 }
+assert_matches() { # assert_matches <file> <extended-regex> <label>
+  grep -qE -- "$2" "$1" || abort "$3 (contents: $(cat "$1"))"
+  pass "$3"
+}
 
 # --- first run: fresh install ------------------------------------------------
 if ! INPUT_GHOTEN_VERSION="$VERSION" bash lib/setup.sh >"${WORK_DIR}/setup1.log" 2>&1; then
@@ -47,7 +51,7 @@ fi
 cat "${WORK_DIR}/setup1.log"
 
 assert_contains "$GITHUB_PATH" "$INSTALL_DIR" "GITHUB_PATH contains install dir"
-assert_contains "$GITHUB_OUTPUT" "version=${VERSION}" "GITHUB_OUTPUT contains version=${VERSION}"
+assert_matches "$GITHUB_OUTPUT" "^version=${VERSION}$" "GITHUB_OUTPUT holds exactly version=${VERSION}"
 assert_contains "$GITHUB_ENV" "GHOTEN_CLI_PATH=${INSTALL_DIR}" "GITHUB_ENV contains GHOTEN_CLI_PATH"
 
 [ -f "${INSTALL_DIR}/ghoten" ] || abort "wrapper script missing at ${INSTALL_DIR}/ghoten"
@@ -115,6 +119,15 @@ grep -q "9\.9\.9" "${WORK_DIR}/versionfile.log" && abort "version input must not
 grep -q "ghoten ${VERSION} (${OS}/${ARCH}) already installed" "${WORK_DIR}/versionfile.log" ||
   abort "asdf-style version file did not resolve to ${VERSION} in the warm cache"
 pass "asdf-style version file wins over the version input"
+
+# --- latest resolution (exercises the GitHub API path) ------------------------
+: >"$GITHUB_OUTPUT"
+if ! INPUT_GHOTEN_VERSION="latest" bash lib/setup.sh >"${WORK_DIR}/latest.log" 2>&1; then
+  cat "${WORK_DIR}/latest.log" >&2; abort "latest resolution run exited non-zero"
+fi
+# `version=` must hold the version alone: stdout of resolve_version is captured.
+assert_matches "$GITHUB_OUTPUT" '^version=[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' \
+  "latest resolution writes a clean version output"
 
 # --- credentials and acceptance-test env (HOME sandboxed) ----------------------
 : >"$GITHUB_ENV"
